@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kenvision
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.production}
+    volumes:
+      - kenvision_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d kenvision']
+      interval: 5s
+      timeout: 5s
+      retries: 15
+    networks:
+      - internal
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/kenvision
+      NEXT_PUBLIC_SITE_URL: https://kenvision.mkbuilds.live
+      ENABLE_LMS: 'false'
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '127.0.0.1:3000:3000'
+    volumes:
+      - kenvision_media:/app/public/media
+    networks:
+      - internal
+
+  initialize:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    profiles: ['maintenance']
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/kenvision
+      NEXT_PUBLIC_SITE_URL: https://kenvision.mkbuilds.live
+      ENABLE_LMS: 'false'
+    command: sh -c 'pnpm payload migrate && pnpm seed'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+networks:
+  internal:
+
+volumes:
+  kenvision_postgres:
+  kenvision_media:

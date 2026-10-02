@@ -1,0 +1,13 @@
+import type { Metadata } from 'next'
+import Link from 'next/link'
+import { PageHero } from '@/components/PageHero'
+export const metadata: Metadata = { title: 'Our Clients', description: 'Kenvision Techniks supports organisations across public service, education, security, infrastructure and enterprise.', alternates: { canonical: '/clients' } }
+const countries = [
+  { name:'Kenya', clients:['Multiple banking institutions','Schools and universities','Private estates','Hospitality properties','Government facilities'] },
+  { name:'Uganda', clients:['Parliament of Uganda','Bank of Uganda','Commercial properties','Educational institutions'] },
+  { name:'South Sudan', clients:['Corporate offices','NGO compounds','Hospitality'] },
+  { name:'Malawi', clients:['Reserve Bank of Malawi','US Embassy Lilongwe','Commercial banks'] },
+  { name:'Namibia', clients:['Commercial and industrial clients'] },
+  { name:'UK & USA', clients:['International project support','Remote system commissioning'] },
+]
+export default function ClientsPage() { return <><PageHero eyebrow="Client portfolio" title="Trusted by institutions that can’t afford to fail." description="100+ institutional accounts across five countries. Parliaments, central banks, embassies, schools and hospitality—security infrastructure that earns trust through performance." image="https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=1200&q=85"><Link href="/contact" className="btn-copper">Become a client <span>→</span></Link></PageHero><section className="section section--white"><div className="container"><div className="stat-grid stat-grid--three" style={{marginBottom:52}}><div className="stat-card"><strong>100+</strong><b>Institutional clients</b></div><div className="stat-card"><strong>5</strong><b>Countries</b></div><div className="stat-card"><strong>20+</strong><b>Years active</b></div></div><div className="eyebrow"><span />Where we work</div><h2>East and Southern Africa, and beyond.</h2><div className="solutions-grid solutions-grid--two">{countries.map((country,i)=><article key={country.name} className="solution-card client-country"><div><span className="copper-num">0{i+1}</span><h3>{country.name}</h3></div><ul>{country.clients.map((client)=><li key={client}>{client}</li>)}</ul></article>)}</div></div></section><section className="final-cta"><div className="final-cta__inner"><div className="final-cta__rule"/><h2>Ready to become a client?</h2><p>Security system or training enquiry—we’re in Nairobi and available.</p><Link href="/contact" className="btn-copper">Get in touch →</Link></div></section></> }

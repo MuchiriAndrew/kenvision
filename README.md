@@ -1,67 +1,76 @@
-# Payload Blank Template
+# Kenvision Techniks
 
-This template comes configured with the bare minimum to get started on anything you need.
+A custom Next.js website and Payload CMS for Kenvision Techniks. The public website and editorial admin are the launch product; the learner portal and LMS are retained as an optional addon in the same application.
 
-## Quick start
+## Stack
 
-This template can be deployed directly from our Cloud hosting and it will setup MongoDB and cloud S3 object storage for media.
+- Next.js App Router + React
+- Payload CMS 3 with the Next.js admin panel
+- PostgreSQL via Payload's Postgres adapter
+- Payload SEO and redirects plugins
+- TypeScript, Lexical rich text and Sharp media processing
 
-## Quick Start - local setup
+## Local setup
 
-To spin up this template locally, follow these steps:
+Requirements: Node.js 20.9+, pnpm 9+, and PostgreSQL 15+ (or Docker Desktop).
 
-### Clone
+1. Install dependencies: `pnpm install`
+2. Copy `.env.example` to `.env`; set `PAYLOAD_SECRET` to a unique random value and configure `DATABASE_URL` for your PostgreSQL instance.
+3. If using the included database service, run `docker compose up -d postgres`.
+4. Apply the initial schema: `pnpm payload migrate`.
+5. Import the 40 exported training programmes: `pnpm seed`.
+6. Start the app: `pnpm dev` and open `http://localhost:3000`.
 
-After you click the `Deploy` button above, you'll want to have standalone copy of this repo on your machine. If you've already cloned this repo, skip to [Development](#development).
+`ENABLE_LMS=false` is the default. With the flag off, student login, registration, dashboard and learning routes return 404; enrolment requests return 404; public course CTAs lead to a prefilled enquiry; and LMS collections are hidden in Payload and deny API access. The course catalogue and contact enquiries remain live. To enable the addon after approval, set `ENABLE_LMS=true`, rebuild/restart the app, and complete the LMS work in `GAP_ANALYSIS.md` first. Do not enable the LMS on a paid production site before its access-control and progress-validation gaps are fixed. The flag preserves the LMS schema and existing data.
 
-### Development
+To create the initial administrator, set `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD` (14+ characters) and optionally `INITIAL_ADMIN_NAME` in `.env`, run `pnpm create-admin`, then remove those bootstrap values. Self-service learner registration is available only when `ENABLE_LMS=true`; otherwise public user creation is denied.
 
-1. First [clone the repo](#clone) if you have not done so already
-2. `cd my-project && cp .env.example .env` to copy the example environment variables. You'll need to add the `MONGODB_URL` from your Cloud project to your `.env` if you want to use S3 storage and the MongoDB database that was created for you.
+## Main URLs
 
-3. `pnpm install && pnpm dev` to install dependencies and start the dev server
-4. open `http://localhost:3000` to open the app in your browser
+- `/` — public home
+- `/training` and `/training/[slug]` — searchable training catalogue and programme pages
+- `/solutions`, `/about`, `/clients`, `/insights`, `/contact`, `/terms` — public company content
+- `/register`, `/login`, `/dashboard`, `/learn/[slug]` — learner portal, only with `ENABLE_LMS=true`
+- `/admin` — Payload editorial administration; LMS sections appear only with `ENABLE_LMS=true`
+- `/api/*` — Payload REST API and the enrolment endpoint
+- `/sitemap.xml`, `/robots.txt` — search engine discovery and crawl policy
 
-That's it! Changes made in `./src` will be reflected in your app. Follow the on-screen instructions to login and create your first admin user. Then check out [Production](#production) once you're ready to build and serve your app, and [Deployment](#deployment) when you're ready to go live.
+## Payload content model
 
-#### Docker (Optional)
+Editorial collections: Pages (block-based), Course Categories, Courses, Solutions, Insights, Media, Organizations and Contact Inquiries. LMS collections: Course Modules, Lessons, Enrollments, Lesson Progress, Quizzes, Quiz Attempts and Certificates. Users is the authenticated account collection. Site Settings stores brand contact details, default metadata, social preview image, verification token and a site-wide no-index switch.
 
-If you prefer to use Docker for local development instead of a local MongoDB instance, the provided docker-compose.yml file can be used.
+The LMS data model remains installed for a future addon. With `ENABLE_LMS=false`, its collections deny access and are hidden from the admin. Before enabling it for learners, complete the access-control and end-to-end acceptance work listed in `GAP_ANALYSIS.md`.
 
-To do so, follow these steps:
+## SEO and publishing
 
-- Modify the `MONGODB_URL` in your `.env` file to `mongodb://127.0.0.1/<dbname>`
-- Modify the `docker-compose.yml` file's `MONGODB_URL` to match the above `<dbname>`
-- Run `docker-compose up` to start the database, optionally pass `-d` to run in the background.
+Use the SEO fields on Pages, Courses, Solutions and Insights for per-entry titles, descriptions and social cards. Site Settings controls default metadata and a site-wide no-index switch. Published content is exposed in the sitemap; private learner routes and admin/API paths are excluded from crawling. Payload's redirects collection is available for editorial URL changes. Published Pages render at new top-level slugs (for example, `/company-profile`); existing main routes such as `/about` remain code-managed and take precedence.
 
-## How it works
+Set `NEXT_PUBLIC_SITE_URL` to the production origin before deployment. Add a database URL and strong `PAYLOAD_SECRET` in the deployment environment. Configure object storage/CDN and an email adapter before production if media volume or contact-notification requirements call for them.
 
-The Payload config is tailored specifically to the needs of most websites. It is pre-configured in the following ways:
+## Production deployment
 
-### Collections
+The mkbuilds deployment uses `docker-compose.prod.yml`, with a private PostgreSQL service and the Next standalone image. Create `/opt/kenvision/.env.production` on the host with a unique `POSTGRES_PASSWORD` and `PAYLOAD_SECRET`; do not commit production values. Keep `ENABLE_LMS=false`. Start the app with:
 
-See the [Collections](https://payloadcms.com/docs/configuration/collections) docs for details on how to extend this functionality.
+```sh
+docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build postgres app
+```
 
-- #### Users (Authentication)
+Apply schema migrations and seed the catalogue once per fresh database:
 
-  Users are auth-enabled collections that have access to the admin panel.
+```sh
+docker compose --env-file .env.production -f docker-compose.prod.yml --profile maintenance run --rm initialize
+```
 
-  For additional help, see the official [Auth Example](https://github.com/payloadcms/payload/tree/3.x/examples/auth) or the [Authentication](https://payloadcms.com/docs/authentication/overview#authentication-overview) docs.
+Create the first CMS administrator by overriding the maintenance command with `pnpm create-admin` and passing `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD` and `INITIAL_ADMIN_NAME` as one-off environment values. To rotate its password, use the `set-admin-password` script with `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Keep both commands one-off; do not add credentials to `.env.production` or GitHub variables. Nginx and the proxy manager handle public HTTPS; the application container itself is bound to host loopback.
 
-- #### Media
+GitHub Actions deploys pushes to `main` after the workflow is pushed to GitHub. Configure repository secret `DEPLOY_SSH_KEY` and repository variables `DEPLOY_KNOWN_HOSTS`, `DEPLOY_HOST`, `DEPLOY_PORT`, `DEPLOY_USER`, `DEPLOY_PATH` and `PRODUCTION_URL`. The action syncs source without environment files, applies pending Payload migrations, rebuilds/restarts the app and checks the public URL. It does not reseed courses on each deploy, so editor changes are preserved.
 
-  This is the uploads enabled collection. It features pre-configured sizes, focal point and manual resizing to help you manage your pictures.
+## Useful commands
 
-### Docker
-
-Alternatively, you can use [Docker](https://www.docker.com) to spin up this template locally. To do so, follow these steps:
-
-1. Follow [steps 1 and 2 from above](#development), the docker-compose file will automatically use the `.env` file in your project root
-1. Next run `docker-compose up`
-1. Follow [steps 4 and 5 from above](#development) to login and create your first admin user
-
-That's it! The Docker instance will help you get up and running quickly while also standardizing the development environment across your teams.
-
-## Questions
-
-If you have any issues or questions, reach out to us on [Discord](https://discord.com/invite/payload) or start a [GitHub discussion](https://github.com/payloadcms/payload/discussions).
+- `pnpm dev` — local development
+- `pnpm build` — optimized production build
+- `pnpm start` — serve the production build
+- `pnpm payload generate:types` — regenerate Payload TypeScript types after schema edits
+- `pnpm payload generate:importmap` — regenerate Payload admin component mappings
+- `pnpm payload migrate:create <name>` / `pnpm payload migrate` — manage schema migrations
+- `pnpm seed` — idempotently upsert the exported course catalogue

@@ -1,20 +1,24 @@
-import { test, expect, Page } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
-test.describe('Frontend', () => {
-  let page: Page
-
-  test.beforeAll(async ({ browser }, testInfo) => {
-    const context = await browser.newContext()
-    page = await context.newPage()
+test.describe('Website launch', () => {
+  test('shows the public website with an enquiry CTA', async ({ page }) => {
+    await page.goto('http://localhost:3000')
+    await expect(page).toHaveTitle(/Professional Training & Technical Solutions/)
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Technology, expertise and training')
+    await expect(page.getByRole('link', { name: 'Talk to our team' })).toHaveAttribute('href', '/contact')
   })
 
-  test('can go on homepage', async ({ page }) => {
-    await page.goto('http://localhost:3000')
+  test('opens a prefiltered training area', async ({ page }) => {
+    await page.goto('http://localhost:3000/training?category=Security%20Systems')
+    await expect(page.getByRole('combobox', { name: 'Training area' })).toHaveValue('Security Systems')
+    await expect(page.getByText(/Showing \d+ of \d+ programmes/)).toBeVisible()
+  })
 
-    await expect(page).toHaveTitle(/Payload Blank Template/)
-
-    const heading = page.locator('h1').first()
-
-    await expect(heading).toHaveText('Welcome to your new project.')
+  test('hides learner routes until the addon is enabled', async ({ request }) => {
+    test.skip(process.env.ENABLE_LMS === 'true', 'LMS addon enabled for this run')
+    for (const path of ['/login', '/register', '/dashboard', '/learn/cctv-operator-control-room']) {
+      const response = await request.get(`http://localhost:3000${path}`)
+      expect(response.status()).toBe(404)
+    }
   })
 })

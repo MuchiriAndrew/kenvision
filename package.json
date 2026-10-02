@@ -4,8 +4,10 @@
   "description": "A blank template to get started with Payload 3.0",
   "license": "MIT",
   "type": "module",
+  "packageManager": "pnpm@10.19.0",
   "scripts": {
     "build": "cross-env NODE_OPTIONS=\"--no-deprecation --max-old-space-size=8000\" next build",
+    "create-admin": "cross-env NODE_OPTIONS=--no-deprecation tsx src/create-admin.ts",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "devsafe": "rm -rf .next && cross-env NODE_OPTIONS=--no-deprecation next dev",
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
@@ -13,12 +15,17 @@
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
     "start": "cross-env NODE_OPTIONS=--no-deprecation next start",
+    "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed.ts",
+    "set-admin-password": "cross-env NODE_OPTIONS=--no-deprecation tsx src/set-admin-password.ts",
     "test": "pnpm run test:int && pnpm run test:e2e",
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts"
   },
   "dependencies": {
+    "@payloadcms/db-postgres": "3.90.1",
     "@payloadcms/next": "3.90.1",
+    "@payloadcms/plugin-redirects": "3.90.1",
+    "@payloadcms/plugin-seo": "3.90.1",
     "@payloadcms/richtext-lexical": "3.90.1",
     "@payloadcms/ui": "3.90.1",
     "cross-env": "^7.0.3",
@@ -28,10 +35,10 @@
     "payload": "3.90.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "sharp": "0.35.4",
-    "@payloadcms/db-postgres": "3.90.1"
+    "sharp": "0.35.4"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@playwright/test": "1.58.2",
     "@testing-library/react": "16.3.0",
     "@types/node": "22.19.9",

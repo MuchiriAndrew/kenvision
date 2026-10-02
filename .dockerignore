@@ -1,0 +1,12 @@
+.git
+.next
+node_modules
+.env
+.env.*
+!.env.example
+coverage
+playwright-report
+test-results
+tests
+GAP_ANALYSIS.md
+README.md
