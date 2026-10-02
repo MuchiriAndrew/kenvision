@@ -20,10 +20,9 @@ export function ContactForm({ inquiryType = 'General', courseTitle }: { inquiryT
   return <form className="form-stack" onSubmit={submit}>
     {message && <p role="status" className={`form-message${error ? ' form-message--error' : ''}`}>{message}</p>}
     <div className="form-field"><label htmlFor="name">Full name</label><input id="name" name="name" required autoComplete="name" /></div>
-    <div className="form-layout form-layout--fields"><div className="form-field"><label htmlFor="email">Email address</label><input id="email" name="email" type="email" required autoComplete="email" /></div><div className="form-field"><label htmlFor="phone">Phone</label><input id="phone" name="phone" autoComplete="tel" /></div></div>
-    <div className="form-field"><label htmlFor="organization">Organisation</label><input id="organization" name="organization" autoComplete="organization" /></div>
-    <div className="form-field"><label htmlFor="inquiryType">How can we help?</label><select id="inquiryType" name="inquiryType" defaultValue={inquiryType}><option>General</option><option>Security systems</option><option>Corporate training</option><option>Course enrollment</option><option>Other</option></select></div>
+    <div className="form-layout form-layout--fields"><div className="form-field"><label htmlFor="email">Email</label><input id="email" name="email" type="email" required autoComplete="email" /></div><div className="form-field"><label htmlFor="phone">Phone</label><input id="phone" name="phone" autoComplete="tel" /></div></div>
+    <div className="form-field"><label htmlFor="inquiryType">Enquiry type</label><select id="inquiryType" name="inquiryType" defaultValue={inquiryType}><option value="Security systems">Security Systems — Quote Request</option><option value="Course enrollment">Training — Course Enquiry</option><option value="General">General Enquiry</option><option value="Corporate training">Corporate Training</option><option value="Other">Other Enquiry</option></select></div>
     <div className="form-field"><label htmlFor="message">Message</label><textarea id="message" name="message" required minLength={10} defaultValue={courseTitle ? `I'm interested in ${courseTitle}. Please share the next available dates and registration details.` : ''} /></div>
-    <button className="btn-primary" disabled={busy}>{busy ? 'Sending…' : 'Send enquiry'} <span>→</span></button>
+    <button className="btn-primary" disabled={busy}>{busy ? 'Sending…' : 'Send message'} <span>→</span></button>
   </form>
 }

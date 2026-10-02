@@ -9,13 +9,13 @@ const links = [
   { label: 'Training', href: '/training' },
   { label: 'Solutions', href: '/solutions' },
   { label: 'About', href: '/about' },
-  { label: 'Clients', href: '/clients' },
+  { label: 'Insights', href: '/clients' },
   { label: 'Contact', href: '/contact' },
 ]
 
 export function SiteHeader({ lmsEnabled }: { lmsEnabled: boolean }) {
   const pathname = usePathname()
-  const visibleLinks = lmsEnabled ? links : links.filter((link) => link.href !== '/contact')
+  const visibleLinks = links
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
@@ -41,13 +41,13 @@ export function SiteHeader({ lmsEnabled }: { lmsEnabled: boolean }) {
           <span className="wordmark__sub">TECHNIKS</span>
         </Link>
         <nav className="desktop-nav" aria-label="Primary navigation">
-          {visibleLinks.map((link) => <Link key={link.href} href={link.href} className={`nav-link ${pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href)) ? 'active' : ''}`}>{link.label}</Link>)}
+          {visibleLinks.map((link) => <Link key={link.href} href={link.href} className={`nav-link ${pathname === link.href || (link.href !== '/' && pathname.startsWith(link.href)) || (link.href === '/training' && pathname.startsWith('/talent')) ? 'active' : ''}`}>{link.label}</Link>)}
           <Link href={lmsEnabled ? '/login' : '/contact'} className="header-login">{lmsEnabled ? 'Student Login' : 'Talk to our team'}</Link>
         </nav>
         <button type="button" className="menu-toggle" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-controls="mobile-primary-navigation" aria-expanded={open} onClick={() => setOpen((value) => !value)}><span /><span /></button>
       </div>
       {open && <nav id="mobile-primary-navigation" className="mobile-nav" aria-label="Mobile navigation">
-        {visibleLinks.map((link) => <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className={`mobile-nav__link ${pathname === link.href ? 'active' : ''}`}>{link.label}</Link>)}
+        {visibleLinks.map((link) => <Link key={link.href} href={link.href} onClick={() => setOpen(false)} className={`mobile-nav__link ${pathname === link.href || (link.href === '/training' && pathname.startsWith('/talent')) ? 'active' : ''}`}>{link.label}</Link>)}
         <Link href={lmsEnabled ? '/login' : '/contact'} onClick={() => setOpen(false)} className="btn-primary mobile-nav__cta">{lmsEnabled ? 'Student Login' : 'Talk to our team'} <span>→</span></Link>
       </nav>}
     </header>

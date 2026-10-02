@@ -10,9 +10,28 @@ const images: Record<string, string> = {
   'Professional & Management': 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=900&q=85',
 }
 
-export function CourseCard({ course, featured = false }: { course: Course; featured?: boolean }) {
+const designImages: Record<string, string> = {
+  'advanced-supervisory-skills': 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&w=640&h=360&q=85',
+  'cctv-operator-control-room': 'https://images.unsplash.com/photo-1708807472445-d33589e6b090?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&w=640&h=360&q=85',
+  'practical-electric-fencing-2026': 'https://images.unsplash.com/photo-1549109926-9620d1b9bfa2?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&w=640&h=360&q=85',
+  'biometric-access-control-installation': 'https://images.unsplash.com/photo-1776329255945-15212b50cd7f?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&w=640&h=360&q=85',
+  'car-engine-diagnostics': 'https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&w=640&h=360&q=85',
+  'fibre-optic-installation': 'https://images.unsplash.com/photo-1594915440248-1e419eba6611?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&w=640&h=360&q=85',
+  'executive-public-speaking': 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&w=640&h=360&q=85',
+}
+
+export function CourseCard({ course, featured = false, design = false }: { course: Course; featured?: boolean; design?: boolean }) {
+  if (design) return <Link href={`/training/${course.id}`} className="course-card course-card--design">
+    <div className="course-card__image"><img src={designImages[course.id] || course.image || images[course.category] || images['ICT & Technical']} alt={course.title} loading="lazy" /></div>
+    <div className="course-card__body">
+      <span className="course-card__category">{course.category}</span>
+      <h3>{course.title}</h3>
+      <div className="course-card__pricing"><strong>{formatPrice(course.price)}</strong>{course.was && <del>{formatPrice(course.was)}</del>}</div>
+      <div className="course-card__bottom"><span>Upcoming — dates to be confirmed</span><b>View Course →</b></div>
+    </div>
+  </Link>
   return <Link href={`/training/${course.id}`} className="course-card">
-    <div className="course-card__image"><img src={course.image || images[course.category] || images['ICT & Technical']} alt="" loading="lazy" />{featured&&<span className="course-card__badge">Featured</span>}</div>
+    <div className="course-card__image"><img src={designImages[course.id] || course.image || images[course.category] || images['ICT & Technical']} alt="" loading="lazy" />{featured&&<span className="course-card__badge">Featured</span>}</div>
     <div className="course-card__body">
       <span className="course-card__category">{course.category}</span>
       <h3>{course.title}</h3>
