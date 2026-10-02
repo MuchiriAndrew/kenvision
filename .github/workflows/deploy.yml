@@ -3,7 +3,6 @@ name: Deploy production
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -74,6 +73,21 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect Payload migration changes
+        id: migration_changes
+        env:
+          BASE_SHA: ${{ github.event.before }}
+        run: |
+          if [ -z "$BASE_SHA" ] || [[ "$BASE_SHA" =~ ^0+$ ]]; then
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          elif git diff --quiet "$BASE_SHA" "$GITHUB_SHA" -- src/migrations/; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Configure SSH
         env:
@@ -111,7 +125,8 @@ jobs:
             -e "ssh -p ${DEPLOY_PORT:-22} -o StrictHostKeyChecking=yes" \
             ./ "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
 
-      - name: Apply database migrations and restart app
+      - name: Apply database migrations
+        if: steps.migration_changes.outputs.changed == 'true'
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
@@ -119,7 +134,30 @@ jobs:
           DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
         run: |
           ssh -p "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "cd '${DEPLOY_PATH}' && docker compose --env-file .env.production -f docker-compose.prod.yml --profile maintenance run --rm initialize pnpm payload migrate && docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build postgres app"
+            "DEPLOY_PATH='${DEPLOY_PATH}' bash -s" <<'REMOTE'
+          set -euo pipefail
+          cd "$DEPLOY_PATH"
+          compose() {
+            docker compose --env-file .env.production -f docker-compose.prod.yml "$@"
+          }
+          has_dev_marker=$(compose exec -T postgres psql -U postgres -d kenvision -Atc \
+            "SELECT to_regclass('public.payload_migrations') IS NOT NULL AND EXISTS (SELECT 1 FROM payload_migrations WHERE name = 'dev')")
+          if [ "$has_dev_marker" = 't' ]; then
+            echo 'Payload dev-mode migration marker detected; refusing to run migrations automatically.' >&2
+            exit 1
+          fi
+          compose --profile maintenance run --rm initialize pnpm payload migrate
+          REMOTE
+
+      - name: Rebuild and restart application
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+        run: |
+          ssh -p "${DEPLOY_PORT:-22}" -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd '${DEPLOY_PATH}' && docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build postgres app"
 
       - name: Check public site
         env:
