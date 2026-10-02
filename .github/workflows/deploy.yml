@@ -15,6 +15,20 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: kenvision
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kenvision"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -33,11 +47,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate ephemeral CI secret
+        run: printf 'PAYLOAD_SECRET=%s\n' "$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
+      - name: Apply schema to CI database
+        run: pnpm payload migrate
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/kenvision
+
       - name: Lint
         run: pnpm lint
 
       - name: Run unit/integration tests
         run: pnpm run test:int
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/kenvision
 
       - name: Build production app
         run: pnpm build
