@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { isAdmin, isStaff } from '../access'
+import { assertLessonBelongsToCourse, calculateCourseProgress } from '../lib/lms-security'
 
 export const LessonProgress: CollectionConfig = {
   slug: 'lesson-progress',
@@ -24,6 +25,8 @@ export const LessonProgress: CollectionConfig = {
       const studentId = typeof enrollment.student === 'object' ? enrollment.student.id : enrollment.student
       if (String(studentId) !== String(req.user.id) || enrollment.status !== 'active') throw new Error('An active enrolment is required to update progress.')
       const lessonId = data.lesson ?? originalDoc?.lesson
+      if (!lessonId) throw new Error('A lesson is required to update progress.')
+      await assertLessonBelongsToCourse(req, lessonId, enrollment.course)
       if (!originalDoc && lessonId) {
         const duplicate = await req.payload.find({ collection: 'lesson-progress', where: { and: [{ enrollment: { equals: typeof enrollmentId === 'object' ? enrollmentId.id : enrollmentId } }, { lesson: { equals: typeof lessonId === 'object' ? lessonId.id : lessonId } }] }, limit: 1, overrideAccess: true })
         if (duplicate.docs.length) throw new Error('Progress for this lesson already exists.')
@@ -42,8 +45,10 @@ export const LessonProgress: CollectionConfig = {
       ])
       const moduleIDs = modules.docs.map((module) => module.id)
       const lessons = moduleIDs.length ? await req.payload.find({ collection: 'lessons', where: { module: { in: moduleIDs } }, limit: 1000, overrideAccess: true }) : { docs: [] }
-      const completedIDs = new Set(progress.docs.map((item) => String(typeof item.lesson === 'object' ? item.lesson.id : item.lesson)))
-      const percent = lessons.docs.length ? Math.round(completedIDs.size / lessons.docs.length * 100) : 0
+      const percent = calculateCourseProgress(
+        lessons.docs.map((lesson) => lesson.id),
+        progress.docs,
+      )
       await req.payload.update({ collection: 'enrollments', id: enrollmentId, data: { progressPercent: percent, ...(percent === 100 ? { status: 'completed', completedAt: new Date().toISOString() } : {}) }, overrideAccess: true })
     }],
   },

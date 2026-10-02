@@ -1,13 +1,15 @@
 # Kenvision website launch and LMS addon — gap analysis
 
-Updated 30 September 2026. The approved launch scope is **website + editorial CMS only**. The LMS is a future addon and is disabled by default with `ENABLE_LMS=false`; the LMS items below are addon prerequisites, not website launch requirements.
+Updated 2 October 2026. The approved initial launch scope was **website + editorial CMS only**. The LMS is now being enabled as a limited beta after closing the two access-control issues below; it is not ready for a paid, full LMS launch. `ENABLE_LMS` remains off by default in source and can be enabled per environment.
 
 ## Deployment state
 
 - Live at [https://kenvision.mkbuilds.live](https://kenvision.mkbuilds.live) with a Let's Encrypt certificate and forced HTTPS.
 - Next.js runs as a standalone production container; Payload and PostgreSQL share the application network. Database and uploaded media use persistent Docker volumes.
 - Payload's initial migration has run and the catalogue contains 40 published programmes across 6 categories.
-- LMS routes and enrolment endpoint return 404 while disabled. The Payload LMS collections remain in the schema but are hidden and deny API access.
+- Production has 40 published courses but currently has no modules, lessons, enrolments, or lesson PDF resources. The learner portal therefore has honest empty states until staff author course content.
+- LMS routes and enrolment endpoint return 404 while disabled. When enabled, student registration and enrolment requests are available; lessons and modules are limited to active or completed course enrolments, and lesson progress validates the lesson/course relationship.
+- Private PDF upload is disabled in LMS mode because Payload media files are otherwise served publicly. Use external protected delivery or build a private-resource service before adding course documents.
 - A first Payload administrator exists as `admin@kenvision.mkbuilds.live`. This is a temporary login address, not a monitored mailbox; replace it with a client-owned address and rotate its password after first sign-in.
 
 ## Delivered in this pass
@@ -18,12 +20,17 @@ Updated 30 September 2026. The approved launch scope is **website + editorial CM
 - Kept a populated, clearly labelled **development-only preview** at `/dashboard?demo=1` for authenticated admins; its sample data does not write to Payload. The normal `/dashboard` reads real account data and displays honest empty states where records do not exist.
 - A production build completes successfully.
 
+## LMS security fixes applied 2 October 2026
+
+- Closed the published lesson/module API read gap by limiting learner reads to modules in their own active or completed enrolments; staff retain authoring access.
+- Progress writes now verify the lesson is part of the enrolled course, and completion percentage counts only completed lessons belonging to that course.
+- LMS mode accepts image uploads only; public PDF upload remains disabled until private file delivery exists.
+- Added focused tests for anonymous denial, enrolled-course scoping, cross-course progress rejection, and course-only progress calculation.
+
 ## Remaining work, prioritized
 
 | Priority | Gap | Evidence and impact | Completion criterion |
 | --- | --- | --- | --- |
-| **P0 — before paid LMS launch** | Lesson and resource access is not enforced at the CMS boundary when the addon is enabled. | With `ENABLE_LMS=false`, LMS collections deny access. When enabled, `src/collections/Lessons.ts` and `src/collections/CourseModules.ts` use `publishedOrStaff`, so published records can be fetched without an active enrollment even though the `/learn/[slug]` page checks enrollment. `src/collections/Media.ts` allows public reads for every upload, including lesson PDFs. | Restrict paid lesson/module reads to enrolled learners, staff, or explicitly free previews; separate or protect private resource files and test direct REST/file URLs. |
-| **P0 — before paid LMS launch** | Progress can be recorded against a lesson outside the learner's enrolled course. | `src/collections/LessonProgress.ts` checks that the enrollment belongs to the user and is active, but does not verify that the submitted lesson's module belongs to that enrollment's course. Its completion calculation counts all completed lesson IDs for the enrollment, not only IDs in the course. | Validate course/lesson relationship on create and update; calculate percentage from the intersection of this course's lessons and completed records; add abuse tests. |
 | **P1 — needed for a working learner journey** | No complete course content is populated. | `src/seed.ts` seeds categories and course catalogue entries only; it does not create modules, lessons, media, quizzes or enrollments. The populated learning room is a labelled preview, not a live course. | Author/publish at least one complete course and test student enrollment → lesson access → progress → completion end to end. |
 | **P1** | Payments and receipts are not implemented. | `src/collections/Enrollments.ts` has a staff-only `paymentReference` field but no payment ledger, transaction status, receipt or provider integration. The live Payments section correctly says records are unavailable; the preview table is sample data. | Define payment workflow and provider, persist transactions/receipts, reconcile enrollment status and display real student-owned payment history. |
 | **P1** | Course scheduling is too shallow for cohorts. | `src/collections/Courses.ts` stores one `upcomingDate` and delivery modes; there is no session/cohort record with venue, start/end times, capacity, price or learner's chosen session. | Add sessions/cohorts and attach enrollments to a session; populate upcoming training from that relationship. |
@@ -34,9 +41,9 @@ Updated 30 September 2026. The approved launch scope is **website + editorial CM
 | **P2** | Some design content has no live CMS equivalent. | The preview includes sample payments, dates, certificates and professional course images. Course `coverImage` is optional and the seed does not upload imagery. `Users` has job title but no education field from the reference profile. | Upload licensed course artwork, enter real dates/content, and add profile fields only if the business will collect and maintain them. |
 | **P2 — LMS production readiness** | Student email and recovery flow need configuration and testing. | Payload currently reports no email adapter in development, and `AuthForm` has no forgot-password path. | Configure transactional mail, reset-password screens, sender/domain settings and delivery tests before inviting students. |
 
-## Website-only launch checks
+## Remaining production readiness checks
 
-- Keep `ENABLE_LMS=false` for this release. If the client later supplies a primary domain, update `NEXT_PUBLIC_SITE_URL`, Payload Site Settings, canonical metadata and the proxy certificate together.
+- Decide whether to invite beta learners while course content and email recovery are incomplete. If the client later supplies a primary domain, update `NEXT_PUBLIC_SITE_URL`, Payload Site Settings, canonical metadata and the proxy certificate together.
 - Replace the temporary Payload admin email with an address the client controls, change the initial password, and add any named editors with least-privilege roles.
 - Configure an email adapter and sender-domain records. Enquiries are saved to Payload, but no notification email is sent yet; until configured, someone must check Contact Inquiries in `/admin`.
 - Have the client approve public claims, prices, programme descriptions, course dates, country/client references and image usage rights. The seeded catalogue comes from the exported design data; not every programme has a CMS-uploaded image or full editorial description.

@@ -1,10 +1,10 @@
 import type { CollectionConfig } from 'payload'
-import { isAdmin, isStaff, publishedOrStaff } from '../access'
+import { enrolledLessonsOnly, isAdmin, isStaff } from '../access'
 
 export const Lessons: CollectionConfig = {
   slug: 'lessons',
   admin: { group: 'Learning', useAsTitle: 'title', defaultColumns: ['title', 'module', 'lessonType', 'sortOrder'] },
-  access: { read: publishedOrStaff, create: ({ req }) => isStaff(req.user), update: ({ req }) => isStaff(req.user), delete: ({ req }) => isAdmin(req.user) },
+  access: { read: enrolledLessonsOnly, create: ({ req }) => isStaff(req.user), update: ({ req }) => isStaff(req.user), delete: ({ req }) => isAdmin(req.user) },
   fields: [
     { name: 'title', type: 'text', required: true },
     { name: 'module', type: 'relationship', relationTo: 'course-modules', required: true, index: true },

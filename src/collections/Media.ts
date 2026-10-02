@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload'
 import { isStaff } from '../access'
+import { isLmsEnabled } from '../lib/features'
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -18,7 +19,9 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
-    mimeTypes: ['image/*', 'application/pdf'],
+    // Media is served from the public directory. Keep private lesson documents
+    // out of it until a protected file-delivery route is available.
+    mimeTypes: isLmsEnabled ? ['image/*'] : ['image/*', 'application/pdf'],
     imageSizes: [
       { name: 'card', width: 720, height: 480, position: 'centre' },
       { name: 'wide', width: 1440, height: 900, position: 'centre' },
